@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, TEST_MODE } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
@@ -15,6 +15,10 @@ const PLAN_MAP: Record<string, string> = {
 }
 
 export async function POST(request: NextRequest) {
+  if (TEST_MODE) {
+    return NextResponse.json({ received: true, test: true })
+  }
+
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
 

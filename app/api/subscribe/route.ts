@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe, PRICE_IDS } from '@/lib/stripe'
+import { stripe, PRICE_IDS, TEST_MODE } from '@/lib/stripe'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 
@@ -21,12 +21,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
+    const origin = request.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+    if (TEST_MODE) {
+      return NextResponse.json({ url: `${origin}/dashboard?subscribed=1&plan=${plan}&test=1` })
+    }
+
     const priceId = PRICE_IDS[plan as Plan]
     if (!priceId) {
       return NextResponse.json({ error: 'Price not configured' }, { status: 500 })
     }
-
-    const origin = request.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',

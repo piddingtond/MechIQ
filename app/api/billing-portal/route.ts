@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
-import { stripe } from '@/lib/stripe'
+import { stripe, TEST_MODE } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +18,12 @@ export async function POST(request: NextRequest) {
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .maybeSingle()
+
+    const returnUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/dashboard`
+
+    if (TEST_MODE) {
+      return NextResponse.json({ url: returnUrl })
+    }
 
     if (!sub?.stripe_customer_id) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
