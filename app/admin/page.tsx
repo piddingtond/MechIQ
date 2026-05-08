@@ -282,7 +282,7 @@ export default function AdminPage() {
                         {s.title || 'Untitled session'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '12px', color: '#9ca3af' }}>
-                        {vehicleStr}
+                        {typeof v === 'string' ? v || '—' : vehicleStr || '—'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '12px', color: '#6b7280' }}>
                         {profile?.full_name || profile?.email || s.user_id.slice(0, 8) + '…'}
