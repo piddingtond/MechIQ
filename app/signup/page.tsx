@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
-// Use plain supabase-js (not auth-helpers) to avoid cookie sync fetch that
-// throws ISO-8859-1 header encoding errors in Chrome when metadata contains
-// non-Latin1 characters from the session JSON.
+// credentials:'omit' prevents any existing cookies (including bad ones from
+// prior failed auth-helpers attempts) from being sent with Supabase requests,
+// which avoids Chrome's ISO-8859-1 header encoding error.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { global: { fetch: (url: RequestInfo | URL, init?: RequestInit) => fetch(url, { ...init, credentials: 'omit' }) } }
 )
 
 type Plan = 'individual' | 'team' | 'multi_bay'
@@ -29,6 +30,7 @@ function SignupInner() {
   const [garageName, setGarageName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,6 +45,12 @@ function SignupInner() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
     setLoading(true)
 
     const { data, error: signupError } = await supabase.auth.signUp({
@@ -259,6 +267,29 @@ function SignupInner() {
                     onFocus={e => (e.currentTarget.style.borderColor = '#f59e0b')}
                     onBlur={e => (e.currentTarget.style.borderColor = '#2a3040')}
                   />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#8892a4', marginBottom: '6px' }}>
+                    Confirm password <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    placeholder="Re-enter your password"
+                    style={{
+                      ...inputStyle,
+                      borderColor: confirmPassword && confirmPassword !== password ? '#ef4444' : '#2a3040',
+                    }}
+                    onFocus={e => (e.currentTarget.style.borderColor = confirmPassword !== password ? '#ef4444' : '#f59e0b')}
+                    onBlur={e => (e.currentTarget.style.borderColor = confirmPassword && confirmPassword !== password ? '#ef4444' : '#2a3040')}
+                  />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>Passwords do not match</p>
+                  )}
                 </div>
               </div>
 
