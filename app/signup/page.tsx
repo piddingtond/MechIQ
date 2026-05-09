@@ -3,16 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-// credentials:'omit' prevents any existing cookies (including bad ones from
-// prior failed auth-helpers attempts) from being sent with Supabase requests,
-// which avoids Chrome's ISO-8859-1 header encoding error.
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { global: { fetch: (url: RequestInfo | URL, init?: RequestInit) => fetch(url, { ...init, credentials: 'omit' }) } }
-)
 
 type Plan = 'individual' | 'team' | 'multi_bay'
 
@@ -53,22 +43,26 @@ function SignupInner() {
 
     setLoading(true)
 
-    const { data, error: signupError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, garage_name: garageName, plan },
-      },
-    })
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, full_name: fullName, garage_name: garageName, plan }),
+      })
 
-    if (signupError) {
-      setError(signupError.message)
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json.error || 'Signup failed — please try again')
+        setLoading(false)
+        return
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error — please try again')
       setLoading(false)
       return
     }
 
-    // Account created — show success screen.
-    // Subscription redirect happens from the pricing page after email confirmation + login.
     setStep('done')
     setLoading(false)
   }

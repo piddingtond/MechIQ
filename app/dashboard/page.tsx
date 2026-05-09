@@ -71,7 +71,16 @@ function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession()
+      // supabase.auth.getSession() can return null in v2.43 if its internal
+      // validation fetch fails — fall back to reading localStorage directly.
+      let { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        try {
+          const key = `sb-${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]}-auth-token`
+          const raw = localStorage.getItem(key)
+          if (raw) session = JSON.parse(raw)
+        } catch { /* ignore */ }
+      }
       if (!session) { router.replace('/login'); return }
       setUser(session.user)
 

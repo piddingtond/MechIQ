@@ -50,7 +50,14 @@ export default function AdminPage() {
   }, [])
 
   async function checkAdminAndLoad() {
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      try {
+        const key = `sb-${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]}-auth-token`
+        const raw = localStorage.getItem(key)
+        if (raw) session = JSON.parse(raw)
+      } catch { /* ignore */ }
+    }
     if (!session) { router.push('/login'); return }
 
     const { data: profile } = await supabase

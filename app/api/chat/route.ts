@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 const FREE_LIMIT = 5
 const PAID_LIMIT = 500
@@ -49,15 +56,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = getSupabaseAdmin()
+
+    // Auth via Authorization header (token written to localStorage by login proxy)
+    const authHeader = request.headers.get('Authorization') ?? ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+    let userId: string | null = null
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token)
+      userId = user?.id ?? null
+    }
 
     let activeSessionId: string | null = sessionId ?? null
-    let userId: string | null = null
     let isNewSession = false
 
-    if (session?.user) {
-      userId = session.user.id
+    if (userId) {
       const today = new Date().toISOString().split('T')[0]
 
       const { data: sub } = await supabase

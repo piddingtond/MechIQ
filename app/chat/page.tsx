@@ -140,6 +140,16 @@ function ChatPageInner() {
     ? `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.engine ? ` (${vehicle.engine})` : ''}`
     : null
 
+  function getAccessToken(): string | null {
+    try {
+      const key = `sb-${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]}-auth-token`
+      const raw = localStorage.getItem(key)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      return parsed?.access_token ?? null
+    } catch { return null }
+  }
+
   async function sendMessage(text?: string) {
     const userText = (text ?? input).trim()
     if (!userText || loading) return
@@ -161,9 +171,13 @@ function ChatPageInner() {
 
     try {
       const allMessages = [...messages, userMsg]
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const token = getAccessToken()
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           messages: allMessages.map(m => ({ role: m.role, content: m.content })),
           vehicle: vehicleSummary,

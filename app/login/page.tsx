@@ -18,16 +18,43 @@ function LoginForm() {
     setError('')
     setLoading(true)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (authError) {
-      setError(authError.message)
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json.error || 'Login failed — please try again')
+        setLoading(false)
+        return
+      }
+
+      // Write session directly to localStorage — avoids setSession()'s internal
+      // /auth/v1/user validation fetch which can fail silently and lose the session.
+      const storageKey = `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL!
+        .replace('https://', '')
+        .split('.')[0]}-auth-token`
+      localStorage.setItem(storageKey, JSON.stringify({
+        access_token: json.access_token,
+        refresh_token: json.refresh_token,
+        token_type: json.token_type ?? 'bearer',
+        expires_in: json.expires_in ?? 3600,
+        expires_at: json.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
+        user: json.user,
+      }))
+    } catch (err: any) {
+      setError(err.message || 'Network error — please try again')
       setLoading(false)
       return
     }
 
     const redirect = searchParams.get('redirect') || '/dashboard'
-    router.push(redirect)
+    // Hard navigate so supabase-js reinitialises fresh from localStorage
+    window.location.href = redirect
   }
 
   const inputStyle = {
