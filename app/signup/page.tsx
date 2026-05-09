@@ -28,18 +28,6 @@ function SignupInner() {
     const p = searchParams.get('plan') as Plan | null
     if (p && PLANS.some(x => x.id === p)) {
       setPlan(p)
-      // If user is already logged in, go straight to subscribe
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session?.user) {
-          const res = await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plan: p }),
-          })
-          const data = await res.json()
-          if (data.url) { window.location.href = data.url; return }
-        }
-      })
       setStep('details')
     }
   }, [searchParams])
@@ -63,23 +51,8 @@ function SignupInner() {
       return
     }
 
-    // For paid plans, redirect to Stripe Checkout
-    try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-      const { url, error: subError } = await res.json()
-      if (url) {
-        window.location.href = url
-        return
-      }
-      console.warn('Stripe checkout not available:', subError)
-    } catch (err) {
-      console.warn('Could not start Stripe checkout:', err)
-    }
-
+    // Account created — show success screen.
+    // Subscription redirect happens from the pricing page after email confirmation + login.
     setStep('done')
     setLoading(false)
   }
