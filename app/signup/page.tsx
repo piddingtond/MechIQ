@@ -3,7 +3,15 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Use plain supabase-js (not auth-helpers) to avoid cookie sync fetch that
+// throws ISO-8859-1 header encoding errors in Chrome when metadata contains
+// non-Latin1 characters from the session JSON.
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 type Plan = 'individual' | 'team' | 'multi_bay'
 
