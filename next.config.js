@@ -33,6 +33,18 @@ const nextConfig = {
       },
     ]
   },
+
+  async redirects() {
+    if (process.env.NODE_ENV !== 'production') return []
+    return [
+      {
+        source: '/(.*)',
+        has: [{ type: 'header', key: 'x-forwarded-proto', value: 'http' }],
+        destination: 'https://mechiq.co.uk/:path*',
+        permanent: true,
+      },
+    ]
+  },
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**.supabase.co' }],
   },
